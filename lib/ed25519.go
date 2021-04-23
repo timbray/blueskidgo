@@ -6,6 +6,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/pem"
+	"fmt"
 	"strings"
 )
 
@@ -30,7 +31,10 @@ func stringToKey(s string) (ed25519.PublicKey, error) {
 	if !strings.Contains(s, "-----BEGIN") {
 		s = "-----BEGIN PUBLIC KEY-----\n" + s + "\n-----END PUBLIC KEY-----"
 	}
-	block, _ := pem.Decode([]byte(s))
+	block, rest := pem.Decode([]byte(s))
+	if len(rest) != 0 {
+		return nil, fmt.Errorf("Invalid pem.Decode")
+	}
 
 	// TODO: Figure out why the struct used for marshaling above is different than this one used for unmarshalling
 	type pubKey struct {
