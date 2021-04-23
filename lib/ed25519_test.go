@@ -14,6 +14,7 @@ func TestInterchangeOneThousandKeys(t *testing.T) {
 		if err != nil {
 			t.Error("Generate: " + err.Error())
 		}
+
 		s, err := keyToString(keyIn)
 		if err != nil {
 			t.Error("k2s: " + err.Error())
