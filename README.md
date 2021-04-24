@@ -1,8 +1,242 @@
-# blueskidgo
+# Blueskidgo
 
-@bluesky Identity tools in Go
+@bluesky Identity tooling in Go
 
-Currently contains two functions
-which can be used to convert ed25519 (EdDSA) keys back and
-forth between ed25519.PublicKey instances and base64
-encoded representation as used in PEM.
+Miscellaneous infrastructure for the **@bluesky Identity** 
+scheme as proposed [here](https://www.tbray.org/ongoing/When/202x/2020/12/01/Bluesky-Identity).
+
+Currently the short-term goal is to sketch in enough of the
+protocol to illustrate it for the purposes of the 
+[Satellite bluesky contest](https://blueskyweb.org/satellite).
+
+### The Server
+
+At the top level, `blueskid.go` contains a small http server
+that listens on port 8123 by default, but you can change
+that with the `--port` option. Let's just call this the 
+Server.
+
+### Identities
+
+Accounts on Providers such as Twitter and Reddit are 
+called *Provider Identities* (PIDs),
+and use syntax such as `twitter.com@timbray` and
+`reddit.com@timbray`.
+
+A *Bluesky Identier* (BID) is a higher-level construct 
+which may be used to map together multiple PIDs so they 
+can be considered a single source for purposes such as 
+reputation metrics. In this implementation, a BID is 
+represented by a 64-bit quantity in which the high-order 
+24 bits identify the Provider and the remaining 40 
+identify PIDs minted by that Provider.
+
+### Assertions 
+
+The Blueskid protocol relies on embedding assertions in
+the text of social-media posts.  These assertions have a small number 
+of string fields.
+
+The beginning and end of an assertion are marked by "🥁" 
+(U+1F941 DRUM) and the fields are separated by "🎸"
+(U+1F3B8 GUITAR).
+
+There is a possibility that a PID might include 🥁 or 🎸, 
+so in all assertions that contain a PID, that PID 
+appears in the last field, to allow the use of libraries such as 
+Go's `strings.SplitN`, which specify the maximum number 
+of fields.
+
+The first field of every assertion is a single character 
+identifying the type of assertion. "C" means Claim BID, 
+"G" means Grant BID, "A" means Accept BID, and "U" means 
+Unclaim BID.
+
+### Claiming a BID
+
+The Server can generate a BID Claim assertion. To do this,
+send a `POST` to the `/claim-assertion` endpoint as follows:
+
+```json
+{
+  "BID": "30900000021"
+}
+```
+The BID should be provided in hex.
+
+Assuming nothing goes wrong, you'll get back a JSON
+construct that looks something like this:
+
+```json
+{
+  "ClaimAssertion": "🥁C🎸30900000021🥁"
+}
+```
+### Sharing BIDs between PIDs
+
+The Server can generate a pair of assertions by which a PID 
+on a @bluesky Provider can grant shared ownership of a *BLuesky 
+Identier* (BID) to another account on the same 
+or another Provider.  To do this, send a `POST` to 
+the `/grant-assertions` endpoint as follows:
+
+```json
+{
+  "BID": "30900000021",
+  "Granter": "twitter.com@tim",
+  "Accepter": "reddit.com@tim"
+}
+```
+
+The BID should be provided in hex.
+
+Assuming nothing goes wrong, you'll get back a JSON
+construct that looks something like this:
+
+```json
+{
+  "GrantAssertion": "🥁G🎸30900000021🎸2021-09-09T05:47:35Z.G🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸SUNjhrp4yTublRn/7ytrDeicaJ62WbnmBbmOBKIWhoJVik/ICIgX9UWU3aYZpIDIo9HbSS73nKF5rfN8gQN8CQ==🎸reddit.com@tim🥁",
+  "AcceptAssertion": "🥁A🎸30900000021🎸2021-09-09T05:47:35Z.A🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸GGnwLVysXUlRYqTbpBY8aOfe/AFrau8TzDjD/xDxV2g5sVcO4/hkFR9EcRJCHskjDbxs+Fu7N+RSQYIr2gIFBg==🎸twitter.com@tim🥁"
+}
+```
+
+### Unclaiming a BID
+
+The Server can generate a BID Unclaim assertion. To do this,
+send a `POST` to the `/unclaim-assertion` endpoint as follows:
+
+```json
+{
+  "BID": "30900000021"
+}
+```
+The BID should be provided in hex.
+
+Assuming nothing goes wrong, you'll get back a JSON
+construct that looks something like this:
+
+```json
+{
+  "UnclaimAssertion": "🥁U🎸30900000021🥁"
+}
+```
+
+### Verifying assertions
+
+To process a grant of a BID from PID to PID, it is necesary
+to validate a pair of assertions - one from the granter, one
+from the accepter - very carefully. 
+
+This includes verifying the signatures using the provided
+public key to prove that the creator of the posts containing
+the Grant and Accept assertions was at one point in time 
+in possession of the private key that was used to generate
+both. 
+
+There are several other sanity checks in the function
+`checkGrantAssertion` and since I'm not a crypto weenie, I 
+probably missed a few that need to be added.
+
+### Retrieving assertions 
+
+@bluesky Identity assumes that assertions claiming and 
+sharing BIDs will be posted to social-media Providers, 
+for example Twitter.  Retrieving data from Providers
+is sufficiently idiosyncratic that custom code is required
+for each.
+
+Code in `twitter.go` uses the V2 Twitter API to retrieve a tweet
+containing a blueskid assertion and unpack it.
+
+These days, you can't just do an HTTP GET on a tweet URL
+and receive the content. So to use this, you need to get 
+a Twitter Developer Account 
+approved, retrieve a bearer token, and arrange for the
+`TWITTER_BEARER_TOKEN` environment variable to have that 
+value.
+
+### Cryptography
+
+This software uses only ed25119 (EdDSA) keys.
+
+`ed25119.go` provides utilities for converting public keys
+back and forth between string and binary representations.
+This uses the horrible old ASN.1/PEM/PKIX machinery, which
+would be silly if the whole world used Go, but many other
+popular libraries in popular languages assume this is the 
+one and only way to interchange public keys. Thus this is 
+the right
+thing to do in an Internet Protocol.  At least you don't 
+have to think about it.
+
+### The Ledger
+
+The @bluesky Identity protocol requires the presence of
+a Ledger, to which a record of Claim, Unclaim, and Grant
+BID transactions are committed immutably.  
+
+The Server implements (see `ledger.go`) an ephemeral ledger 
+that is a fake, lives only in memory and is not transactional, 
+not concurrent, and not persisted. Databases are hard 
+and this is just a demo!
+
+However, the API offered by the Server for updating and 
+scanning the ledger constitutes a proposal for what the
+API for a less-fake ledger must look like.
+
+When a BID Claim assertion has been posted, send a POST to
+the `/claim-bid` endpoint as follows:
+
+```jaon
+{
+  "Post": "url of social-media post containing the BID claim assertion"
+}
+```
+There is no response body.
+
+When a BID Grant assertion and corresponding BID CLaim 
+assertion have both been posted, send a post to the 
+`/grant-bid` endpoint as follows:
+
+```json
+{
+  "GrantPost":  "url of social-media post containing the BID-claim assertion"
+  "AcceptPost": "url of social-media post containing the BID-accept assertion"
+}
+```
+
+There is no response body.
+
+When a BID Unclaim assertion has been posted, send a POST to
+the `/unclaim-bid` endpoint as follows:
+
+```jaon
+{
+  "Post": "url of social-media post containing the BID unclaim assertion"
+}
+```
+There is no response body.
+
+### Ledger records
+
+Each ledger record has four fields. 
+
+"RecordType" must be 
+one of "Claim", "Grant", or "Unclaim".
+
+"BID" must be a hex encoding of the 64-bit BID being
+transacted. 
+
+"PIDs" is an array with one or two members. In
+Claim and Unclaim records, it has one element giving the
+PID claiming or unclaiming.  In a Grant record it has
+two elements giving the granting and accepting PIDs.
+
+"Posts" is an array with one or two members. In Claim and
+Unclaim records, it has one element giving the 
+URL of the social-media post
+containing the assertion.  In a Grant record it the 
+first element is the URL of the social-media post 
+containing the Grant assertion, the second the URL of 
+the social-media post containing the Accept assertino.
+

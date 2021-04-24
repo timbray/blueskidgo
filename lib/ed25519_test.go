@@ -15,11 +15,11 @@ func TestInterchangeOneThousandKeys(t *testing.T) {
 			t.Error("Generate: " + err.Error())
 		}
 
-		s, err := keyToString(keyIn)
+		s, err := KeyToString(keyIn)
 		if err != nil {
 			t.Error("k2s: " + err.Error())
 		}
-		keyOut, err := stringToKey(s)
+		keyOut, err := StringToKey(s)
 		if err != nil {
 			t.Error("s2k: " + err.Error())
 		}
@@ -35,7 +35,7 @@ func TestExternallyGeneratedKey(t *testing.T) {
 	keyText := "MCowBQYDK2VwAyEAZwCr+eQWBM0P8LuQr0l+TM4ZyEKD2IJ7vfN1I6qK1bY="
 	sigText := "RYjSsXJts00FnI9bKIya979tTzbKNNUvD+DoWTwSTn50j5hYV6kYKbaMo9r52TGGnnZkw0II4Jage7WJ90enBQ=="
 
-	key, err := stringToKey(keyText)
+	key, err := StringToKey(keyText)
 	if err != nil {
 		t.Error("s2K " + err.Error())
 	}
