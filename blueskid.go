@@ -20,10 +20,10 @@ func main() {
 	http.HandleFunc("/claim-bid", blueskidgo.ClaimBIDHandler)
 	http.HandleFunc("/grant-bid", blueskidgo.GrantBIDHandler)
 	http.HandleFunc("/unclaim-bid", blueskidgo.UnclaimBIDHandler)
-	http.HandleFunc("/get-pid-group", blueskidgo.GetPIDGroupHandler)
-	http.HandleFunc("/get-pids-for-bid", blueskidgo.GetPIDsForBIDHandler)
-	http.HandleFunc("/get-bids-for-pid", blueskidgo.GetBIDsforPIDHandler)
-
+	http.HandleFunc("/pid-group", blueskidgo.GetPIDGroupHandler)
+	http.HandleFunc("/pids-for-bid", blueskidgo.GetPIDsForBIDHandler)
+	http.HandleFunc("/bids-for-pid", blueskidgo.GetBIDsforPIDHandler)
+	http.HandleFunc("/ledger", blueskidgo.LedgerHandler)
 
 	err := http.ListenAndServe(portArg, nil)
 	if err != nil {

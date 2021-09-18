@@ -1,11 +1,17 @@
 package blueskidgo
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestDatabase(t *testing.T) {
-	BIDs := []uint64{0xb1b1b1, 0xb2b2b2, 0xb3b3b3}
+	BIDnums := []uint64{0xb1b1b1, 0xb2b2b2, 0xb3b3b3}
+	var BIDs []string
+	for _, b := range BIDnums {
+		BIDs = append(BIDs, fmt.Sprintf("%016x", b))
+	}
+
 	PIDs := []string{"twitter.com@p1", "reddit.com@p2", "tumblr.com@p3" }
 
 	// pid claims
@@ -44,7 +50,10 @@ func TestDatabase(t *testing.T) {
 	}
 
 	// fresh new BIDs
-	BIDs = []uint64{0xbb1, 0xbb2, 0xbb3}
+	BIDnums = []uint64{0xbb1, 0xbb2, 0xbb3}
+	for i, b := range BIDnums {
+		BIDs[i] = fmt.Sprintf("%016x", b)
+	}
 
 	// p1 claims b1, gives it to b2 and b3
 	// p2 claims b2, gives it to p3

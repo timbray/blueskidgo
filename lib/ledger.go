@@ -3,7 +3,6 @@ package blueskidgo
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 )
@@ -27,7 +26,7 @@ const (
 // for UnclaimbID: PIDS[0] is the unclaimer, PostURLs[0] is the unclaim post
 type LedgerRecord struct {
 	RecType  recordType
-	BID      uint64
+	BID      string
 	PIDs     []string
 	PostURLs []string
 }
@@ -67,7 +66,7 @@ type LedgerScanner interface {
 
 func Scan(scanner LedgerScanner) error {
 	var err error
-	for _, record := range theLedger.records {
+	for _, record := range theLedger.Records {
 		err = scanner.processRecord(record)
 		if err != nil {
 			return err
@@ -77,10 +76,10 @@ func Scan(scanner LedgerScanner) error {
 }
 
 type ledger struct {
-	records []*LedgerRecord
+	Records []*LedgerRecord
 }
 
-var theLedger ledger
+var theLedger  = ledger{Records: make([]*LedgerRecord,0)}
 var theLock sync.Mutex
 
 // appendToLedger also performs sanity-checking to make sure the claim/unclaim/grant being requested is legitimate
@@ -90,20 +89,18 @@ func appendToLedger(record *LedgerRecord) error {
 	theLock.Lock()
 	defer theLock.Unlock()
 
-	BIDstring := fmt.Sprintf("%x", record.BID)
-
 	switch record.RecType {
 	case ClaimBID:
 		claimingPID := record.PIDs[0]
 
 		// is this BID available?
-		_, ok := PIDsForBID[BIDstring]
+		_, ok := PIDsForBID[record.BID]
 		if ok {
-			return errors.New("BID '" + BIDstring + "' has already been claimed by another account")
+			return errors.New("BID '" + record.BID + "' has already been claimed by another account")
 		}
 
 		// map from BID to PID
-		PIDsForBID[BIDstring] = map[string]bool{claimingPID: true}
+		PIDsForBID[record.BID] = map[string]bool{claimingPID: true}
 
 		// map from PID to BID
 		bidsForClaimingPID, ok := BIDsForPID[claimingPID]
@@ -111,20 +108,20 @@ func appendToLedger(record *LedgerRecord) error {
 			bidsForClaimingPID = make(map[string]bool)
 			BIDsForPID[claimingPID] = bidsForClaimingPID
 		}
-		bidsForClaimingPID[BIDstring] = true
+		bidsForClaimingPID[record.BID] = true
 
 	case GrantBID:
 		granter := record.PIDs[0]
 		accepter := record.PIDs[1]
-		pidsForGrantedBID, ok := PIDsForBID[BIDstring]
+		pidsForGrantedBID, ok := PIDsForBID[record.BID]
 
 		// granter has to own PID
 		if !ok {
-			return errors.New("no such BID: " + BIDstring)
+			return errors.New("no such BID: " + record.BID)
 		}
 		_, ok = pidsForGrantedBID[granter]
 		if !ok {
-			return errors.New("this account is not mapped to BID " + BIDstring)
+			return errors.New("this account is not mapped to BID " + record.BID)
 		}
 
 		// map from BID to accepter PID
@@ -136,17 +133,17 @@ func appendToLedger(record *LedgerRecord) error {
 			bidsForAccepter = make(map[string]bool)
 			BIDsForPID[accepter] = bidsForAccepter
 		}
-		bidsForAccepter[BIDstring] = true
+		bidsForAccepter[record.BID] = true
 
 	case UnclaimBID:
 		// can only do this if this BID exists and I'm mapped to it
-		currentPIDs, ok := PIDsForBID[BIDstring]
+		currentPIDs, ok := PIDsForBID[record.BID]
 		if !ok {
-			return errors.New("no such BID: " + BIDstring)
+			return errors.New("no such BID: " + record.BID)
 		}
 		_, ok = currentPIDs[record.PIDs[0]]
 		if !ok {
-			return errors.New("this account is not mapped to BID " + BIDstring)
+			return errors.New("this account is not mapped to BID " + record.BID)
 		}
 
 		// remove the mapping between PID to BID
@@ -155,15 +152,20 @@ func appendToLedger(record *LedgerRecord) error {
 		delete(currentPIDs, record.PIDs[0])
 
 		currentBIDs, _ := BIDsForPID[record.PIDs[0]]
-		delete(currentBIDs, BIDstring)
+		delete(currentBIDs, record.BID)
 	}
 
-	theLedger.records = append(theLedger.records, record)
+	theLedger.Records = append(theLedger.Records, record)
 	return nil
 }
 
+func LedgerHandler(w http.ResponseWriter, _ *http.Request) {
+	bytes, err := json.MarshalIndent(theLedger, "", " ")
+	writeJson(w, bytes, err)
+}
+
 type getPIDGroupHandlerResult struct {
-  	PIDGroup []string
+	PIDGroup []string
 }
 
 func makePIDgroup(pid string) map[string]bool {
@@ -196,7 +198,7 @@ func GetPIDGroupHandler(w http.ResponseWriter, httpRequest *http.Request) {
 
 	respJSON, err := json.MarshalIndent(resp, "", " ")
 	if err != nil {
-		http.Error(w, "response creation failure: " + err.Error(), http.StatusInternalServerError)
+		http.Error(w, "response creation failure: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	writeJson(w, respJSON, err)
@@ -206,6 +208,7 @@ func GetPIDGroupHandler(w http.ResponseWriter, httpRequest *http.Request) {
 type getBIDsforPIDResponse struct {
 	BIDs []string
 }
+
 func GetBIDsforPIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 	if !openGet(w, httpRequest) {
 		return
@@ -232,6 +235,7 @@ func GetBIDsforPIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 type getPIDsForBIDResponse struct {
 	PIDs []string
 }
+
 func GetPIDsForBIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 	if !openGet(w, httpRequest) {
 		return
@@ -269,16 +273,16 @@ func openGet(w http.ResponseWriter, req *http.Request) bool {
 	return true
 }
 
-func writeJson(w http.ResponseWriter, body[]byte, err error) {
+func writeJson(w http.ResponseWriter, body []byte, err error) {
 	if err != nil {
-		http.Error(w, "response creation failure: " + err.Error(), http.StatusInternalServerError)
+		http.Error(w, "response creation failure: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(body)
 	if err != nil {
-		http.Error(w, "failed sending response: " + err.Error(), http.StatusInternalServerError)
+		http.Error(w, "failed sending response: "+err.Error(), http.StatusInternalServerError)
 	}
 	return
 }

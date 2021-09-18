@@ -2,6 +2,7 @@ package blueskidgo
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -48,7 +49,7 @@ func ClaimBIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 	}
 	err = appendToLedger(&LedgerRecord{
 		RecType:  ClaimBID,
-		BID:      bid,
+		BID:      fmt.Sprintf("%016X", bid),
 		PIDs:     []string{pid},
 		PostURLs: []string{req.Post},
 	})
@@ -91,7 +92,7 @@ func GrantBIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 
 	err = appendToLedger(&LedgerRecord{
 		RecType:  GrantBID,
-		BID:      bid,
+		BID:      fmt.Sprintf("%016X", bid),
 		PIDs:     []string{gPID, aPID},
 		PostURLs: []string{req.GrantPost, req.AcceptPost},
 	})
@@ -133,7 +134,7 @@ func UnclaimBIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 	}
 	err = appendToLedger(&LedgerRecord{
 		RecType:  UnclaimBID,
-		BID:      bid,
+		BID:      fmt.Sprintf("%016X", bid),
 		PIDs:     []string{pid},
 		PostURLs: []string{req.Post},
 	})

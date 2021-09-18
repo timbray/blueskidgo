@@ -40,7 +40,7 @@ func assertionFromTwitter(url string, fieldCount int) (assertionFields []string,
 // given a tweet instance, extract the blueskid assertion and the author and return both
 func assertionFromTweet(tweet *tweet, url string, fieldCount int) (assertionFields []string, pid string, err error) {
 
-	// erify it's really a twitter URL
+	// verify it's really a twitter URL
 	twitterPrefix := "https://twitter.com/"
 	if !strings.HasPrefix(url, twitterPrefix) {
 		err = errors.New("not a twitter URL")

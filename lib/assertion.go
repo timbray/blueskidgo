@@ -8,9 +8,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	goURL "net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -55,9 +55,6 @@ func generateGrantAssertions(bid uint64, granter string, accepter string) (grant
 
 	bidString := fmt.Sprintf("%X", bid)
 
-	// get a timestamp
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-
 	// a keypair
 	public, private, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -68,18 +65,24 @@ func generateGrantAssertions(bid uint64, granter string, accepter string) (grant
 		return
 	}
 
-	nonce := timestamp + ".G"
-	sig := base64.StdEncoding.EncodeToString(ed25519.Sign(private, []byte(nonce)))
-	grant = assertionFromFields("G", bidString, nonce, pubString, sig, accepter)
+	nBytes, nString := makeNonce()
+	sig := base64.StdEncoding.EncodeToString(ed25519.Sign(private, nBytes))
+	grant = assertionFromFields("G", bidString, nString, pubString, sig, accepter)
 
-	nonce = timestamp + ".A"
-	sig = base64.StdEncoding.EncodeToString(ed25519.Sign(private, []byte(nonce)))
-	accept = assertionFromFields("A", bidString, nonce, pubString, sig, granter)
+	nBytes, nString = makeNonce()
+	sig = base64.StdEncoding.EncodeToString(ed25519.Sign(private, nBytes))
+	accept = assertionFromFields("A", bidString, nString, pubString, sig, granter)
 
-	// TODO: Figure out how to overwrite this so it doesn't linger in memory
+	// TODO: Figure out a principled way to overwrite this so it doesn't linger in memory
 	private = nil
 
 	return
+}
+
+func makeNonce() ([]byte, string) {
+	nb := make([]byte, 8)
+	_, _ = rand.Read(nb)
+	return nb, base64.StdEncoding.EncodeToString(nb)
 }
 
 func assertionFromFields(fields ...string) string {
@@ -114,7 +117,7 @@ func checkGrantAssertionPair(gFields []string, gPID string, aFields []string, aP
 	}
 
 	if accepter.counterparty != gPID {
-		return 0, errors.New("a  ccepter assertion does not identify granter")
+		return 0, errors.New("accepter assertion does not identify granter")
 	}
 	if granter.counterparty != aPID {
 		return 0, errors.New("granter assertion does not identify accepter")
@@ -148,13 +151,6 @@ func checkGrantAssertion(parts []string) (*grantAssertion, error) {
 	a.bid = bid
 
 	nonce := parts[ClaimNonce]
-	suffix := nonce[len(nonce)-2:]
-	if !(suffix == ".A" || suffix == ".G") {
-		return nil, errors.New("malformed nonce, should end with .G or .A")
-	}
-	if (ga == "G" && suffix != ".G") || (ga == "A" && suffix != ".A") {
-		return nil, errors.New("nonce suffix should match ga")
-	}
 	a.nonce = nonce
 
 	key, err := StringToKey(parts[ClaimKey])
@@ -168,7 +164,11 @@ func checkGrantAssertion(parts []string) (*grantAssertion, error) {
 		return nil, errors.New("malformed signature in assertino: " + parts[ClaimSig] + " - " + err.Error())
 	}
 
-	if !ed25519.Verify(key, []byte(nonce), sig) {
+	nBytes, err := base64.StdEncoding.DecodeString(nonce)
+	if err != nil {
+		return nil, errors.New("malformed base64 in nonce")
+	}
+	if !ed25519.Verify(key, nBytes, sig) {
 		return nil, errors.New("grantAssertion signature vaildation failed")
 	}
 
@@ -177,11 +177,21 @@ func checkGrantAssertion(parts []string) (*grantAssertion, error) {
 	return &a, nil
 }
 
-func fetchAssertionFromPost(url string, fieldCount int) (assertionFields []string, pid string, err error) {
-	if strings.HasPrefix(url, "https://twitter.com/") {
-		assertionFields, pid, err = assertionFromTwitter(url, fieldCount)
+func fetchAssertionFromPost(rawURL string, fieldCount int) (assertionFields []string, pid string, err error) {
+
+	url, err := goURL.Parse(rawURL)
+	if err != nil {
+		return
+	}
+	hostname := url.Hostname()
+	if hostname == "twitter.com" || strings.HasSuffix(hostname, ".twitter.com") {
+		assertionFields, pid, err = assertionFromTwitter(rawURL, fieldCount)
+	} else if strings.HasSuffix(hostname, ".tumblr.com") {
+		assertionFields, pid, err = assertionFromTumblr(rawURL, fieldCount)
+	} else if strings.HasSuffix(hostname, "mastodon.cloud") {
+		assertionFields, pid, err = assertionFromMastodon(rawURL, fieldCount)
 	} else {
-		err = errors.New("no handler for social-media URL " + url)
+		err = errors.New("no handler for social-media URL " + rawURL)
 	}
 	return
 }
