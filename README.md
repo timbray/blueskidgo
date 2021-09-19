@@ -28,7 +28,7 @@ which may be used to map together multiple PIDs so they
 can be considered a single source, for purposes such as 
 reputation metrics. In this implementation, a BID is 
 represented by a 64-bit unsigned integer, or alternately
-by a 16-character hex string giving its value.
+by a 16-character hex string (in all-caps) giving its value.
 
 ### Assertions 
 
@@ -60,7 +60,7 @@ send a `POST` to the `/claim-assertion` endpoint as follows:
 
 ```json
 {
-  "BID": "30900000021"
+  "BID": "309F0000021"
 }
 ```
 The BID should be provided in hex.
@@ -70,7 +70,7 @@ construct that looks something like this:
 
 ```json
 {
-  "ClaimAssertion": "🥁C🎸30900000021🥁"
+  "ClaimAssertion": "🥁C🎸309F0000021🥁"
 }
 ```
 ### Sharing BIDs between PIDs
@@ -83,7 +83,7 @@ the `/grant-assertions` endpoint as follows:
 
 ```json
 {
-  "BID": "30900000021",
+  "BID": "309F0000021",
   "Granter": "twitter.com@tim",
   "Accepter": "reddit.com@tim"
 }
@@ -96,8 +96,8 @@ construct that looks something like this:
 
 ```json
 {
-  "GrantAssertion": "🥁G🎸30900000021🎸2021-09-09T05:47:35Z.G🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸SUNjhrp4yTublRn/7ytrDeicaJ62WbnmBbmOBKIWhoJVik/ICIgX9UWU3aYZpIDIo9HbSS73nKF5rfN8gQN8CQ==🎸reddit.com@tim🥁",
-  "AcceptAssertion": "🥁A🎸30900000021🎸2021-09-09T05:47:35Z.A🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸GGnwLVysXUlRYqTbpBY8aOfe/AFrau8TzDjD/xDxV2g5sVcO4/hkFR9EcRJCHskjDbxs+Fu7N+RSQYIr2gIFBg==🎸twitter.com@tim🥁"
+  "GrantAssertion": "🥁G🎸309F0000021🎸2021-09-09T05:47:35Z.G🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸SUNjhrp4yTublRn/7ytrDeicaJ62WbnmBbmOBKIWhoJVik/ICIgX9UWU3aYZpIDIo9HbSS73nKF5rfN8gQN8CQ==🎸reddit.com@tim🥁",
+  "AcceptAssertion": "🥁A🎸309F0000021🎸2021-09-09T05:47:35Z.A🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸GGnwLVysXUlRYqTbpBY8aOfe/AFrau8TzDjD/xDxV2g5sVcO4/hkFR9EcRJCHskjDbxs+Fu7N+RSQYIr2gIFBg==🎸twitter.com@tim🥁"
 }
 ```
 
@@ -108,7 +108,7 @@ send a `POST` to the `/unclaim-assertion` endpoint as follows:
 
 ```json
 {
-  "BID": "30900000021"
+  "BID": "309F0000021"
 }
 ```
 The BID should be provided in hex.
@@ -118,7 +118,7 @@ construct that looks something like this:
 
 ```json
 {
-  "UnclaimAssertion": "🥁U🎸30900000021🥁"
+  "UnclaimAssertion": "🥁U🎸309F000021🥁"
 }
 ```
 
