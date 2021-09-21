@@ -1,9 +1,17 @@
 package blueskidgo
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"fmt"
 	"testing"
 )
+
+func newPubKey() string {
+	public, _, _ := ed25519.GenerateKey(rand.Reader)
+	s, _ := KeyToString(public)
+	return s
+}
 
 func TestDatabase(t *testing.T) {
 	BIDnums := []uint64{0xb1b1b1, 0xb2b2b2, 0xb3b3b3}
@@ -17,34 +25,34 @@ func TestDatabase(t *testing.T) {
 	// pid claims
 	var err error
 	for i := 0; i < 3; i++ {
-		err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[i], PIDs: []string{PIDs[i]}})
+		err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[i], PIDs: []string{PIDs[i]}, Key: newPubKey()})
 		if err != nil {
 			t.Errorf("PID claim %d: %s", i, err.Error())
 		}
 	}
 
 	// claim already-claimed BID
-	err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[1], PIDs: []string{PIDs[0]}})
+	err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[1], PIDs: []string{PIDs[0]}, Key: newPubKey()})
 	if err == nil {
 		t.Error("accepted duplicate BID claim")
 	}
 
 	// unclaim it all
 	for i := 0; i < 3; i++ {
-		err = appendToLedger(&LedgerRecord{RecType: UnclaimBID, BID: BIDs[i], PIDs: []string{PIDs[i]}})
+		err = appendToLedger(&LedgerRecord{RecType: UnclaimBID, BID: BIDs[i], PIDs: []string{PIDs[i]}, Key: newPubKey()})
 		if err != nil {
 			t.Errorf("PID claim %d: %s", i, err.Error())
 		}
 	}
 
 	// try to unclaim again
-	err = appendToLedger(&LedgerRecord{RecType: UnclaimBID, BID: BIDs[2], PIDs: []string{PIDs[2]}})
+	err = appendToLedger(&LedgerRecord{RecType: UnclaimBID, BID: BIDs[2], PIDs: []string{PIDs[2]}, Key: newPubKey()})
 	if err == nil {
 		t.Error("accepted double unclaim")
 	}
 
 	// try to claim an already-used BID
-	err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[2], PIDs: []string{PIDs[2]}})
+	err = appendToLedger(&LedgerRecord{RecType: ClaimBID, BID: BIDs[2], PIDs: []string{PIDs[2]}, Key: newPubKey()})
 	if err == nil {
 		t.Error("re-use BID")
 	}
@@ -70,6 +78,7 @@ func TestDatabase(t *testing.T) {
 		BID:      BIDs[0],
 		PIDs:     []string{PIDs[0], PIDs[1]},
 		PostURLs: []string{"g12", "a12"},
+		Key:      newPubKey(),
 	}
 	err = appendToLedger(&grant)
 	if err != nil {
@@ -78,6 +87,7 @@ func TestDatabase(t *testing.T) {
 
 	grant.PIDs = []string{PIDs[0], PIDs[2]}
 	grant.PostURLs = []string{"g13", "a13"}
+	grant.Key = newPubKey()
 	err = appendToLedger(&grant)
 	if err != nil {
 		t.Error("prob with grant 1->3: " + err.Error())
@@ -86,6 +96,7 @@ func TestDatabase(t *testing.T) {
 	grant.BID = BIDs[1]
 	grant.PIDs = []string{PIDs[1], PIDs[2]}
 	grant.PostURLs = []string{"g23", "a23"}
+	grant.Key = newPubKey()
 	err = appendToLedger(&grant)
 	if err != nil {
 		t.Error("prob with grant 2->3: " + err.Error())
