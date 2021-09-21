@@ -24,11 +24,13 @@ const (
 // for ClaimBID: PIDs[0] is the claimer, PostURLs[0] is the claim post.
 // for GrantBID: PIDS[0] and [1] are the claimer and accepter, and PostURLs[0] & [1] the grant/accept posts
 // for UnclaimbID: PIDS[0] is the unclaimer, PostURLs[0] is the unclaim post
+// The Key field is provided only for Grant records, to help ensure no re-use of key-pairs.
 type LedgerRecord struct {
 	RecType  recordType
 	BID      string
 	PIDs     []string
 	PostURLs []string
+	Key      string
 }
 
 // we'll build a dumb little database to maintain BID/PID mappings
@@ -38,6 +40,9 @@ var PIDsForBID = make(map[string]map[string]bool)
 
 // BIDsForPID is indexed by PID; values are set-like maps containing the BIDs mapped to that BID
 var BIDsForPID = make(map[string]map[string]bool)
+
+// KeysUsed tracks the public keys that have appeared in assertions, so as to prevent re-use.
+var KeysUsed = make(map[string]bool)
 
 /*
 // for debugging
@@ -123,6 +128,13 @@ func appendToLedger(record *LedgerRecord) error {
 		if !ok {
 			return errors.New("this account is not mapped to BID " + record.BID)
 		}
+
+		// has key been used?
+		_, ok = KeysUsed[record.Key]
+		if ok {
+			return errors.New("public key has been used in a previous grant transaction")
+		}
+		KeysUsed[record.Key] = true
 
 		// map from BID to accepter PID
 		pidsForGrantedBID[accepter] = true

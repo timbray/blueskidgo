@@ -96,8 +96,8 @@ construct that looks something like this:
 
 ```json
 {
-  "GrantAssertion": "🥁G🎸309F0000021🎸2021-09-09T05:47:35Z.G🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸SUNjhrp4yTublRn/7ytrDeicaJ62WbnmBbmOBKIWhoJVik/ICIgX9UWU3aYZpIDIo9HbSS73nKF5rfN8gQN8CQ==🎸reddit.com@tim🥁",
-  "AcceptAssertion": "🥁A🎸309F0000021🎸2021-09-09T05:47:35Z.A🎸MCowBQYDK2VwAyEAG4Hs/FA/ylsiR2+Gmg58ZTS68gz0/ZuH3dgn/kF/YJ0=🎸GGnwLVysXUlRYqTbpBY8aOfe/AFrau8TzDjD/xDxV2g5sVcO4/hkFR9EcRJCHskjDbxs+Fu7N+RSQYIr2gIFBg==🎸twitter.com@tim🥁"
+  "GrantAssertion": "🥁G🎸309F0000021🎸eF2QINuVp9Q=🎸MCowBQYDK2VwAyEAj9Z3Lf5Rxylw6WParFBmeSnyhb7rK4+n1QsQba1OX2Q=🎸a/N23VuG3n7p0lfUbfPxzdDb0Ur81S3vThG0x1ZoLtf8eUHP+4AD6sOVEkx2nPkmGyMUfTyPzUcTZ/HvGs08CA==🎸reddit.com@tim🥁",
+  "AcceptAssertion": "🥁A🎸309F0000021🎸CJHlLHY9das=🎸MCowBQYDK2VwAyEAj9Z3Lf5Rxylw6WParFBmeSnyhb7rK4+n1QsQba1OX2Q=🎸rnwypUgFm5YmmFVxsh8mTInvAeAUxET8lUVId9OU9cR9wtfMWyXVDMkQyVnHoCqnUSn18+9HGr2gEF7lXOwYDg==🎸twitter.com@tim🥁"
 }
 ```
 

@@ -95,6 +95,7 @@ func GrantBIDHandler(w http.ResponseWriter, httpRequest *http.Request) {
 		BID:      fmt.Sprintf("%016X", bid),
 		PIDs:     []string{gPID, aPID},
 		PostURLs: []string{req.GrantPost, req.AcceptPost},
+		Key:      gFields[ClaimKey],
 	})
 	if err != nil {
 		http.Error(w, "Database update rejected: "+err.Error(), http.StatusBadRequest)
